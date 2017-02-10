@@ -717,6 +717,7 @@ check_entry_size_and_hooks(struct ipt_entry *e,
 			 e, e->next_offset);
 		return -EINVAL;
 	}
+
 	if (!ip_checkentry(&e->ip))
 		return -EINVAL;
 
