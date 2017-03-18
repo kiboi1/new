@@ -397,7 +397,12 @@ static int dsim_panel_set_hbm(struct dsim_device *dsim, int force)
 		dsim_err("%s : panel is NULL\n", __func__);
 		goto exit;
 	}
-
+#ifdef CONFIG_LCD_DOZE_MODE
+	if(panel->curr_alpm_mode != ALPM_OFF) {
+		dsim_info("panel is ALPM/HLPM mode. skip hbm command.\n");
+		goto exit;
+	}
+#endif
 	if(force || panel->current_hbm != panel->hbm_tbl[level][1]) {
 		panel->current_hbm = panel->hbm_tbl[level][1];
 		if((ret = dsim_write_hl_data(dsim, panel->hbm_tbl[level], ARRAY_SIZE(SEQ_HBM_OFF))) < 0) {
@@ -826,7 +831,12 @@ set_br_exit:
 
 static int panel_get_brightness(struct backlight_device *bd)
 {
-	return bd->props.brightness;
+	struct panel_private *priv = bl_get_data(bd);
+	struct dsim_device *dsim;
+
+	dsim = container_of(priv, struct dsim_device, priv);
+
+	return get_actual_br_value(dsim, priv->br_index);
 }
 
 

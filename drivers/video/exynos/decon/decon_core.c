@@ -37,6 +37,9 @@
 #include <linux/debugfs.h>
 #include <linux/of_gpio.h>
 #include <linux/irq.h>
+#ifdef CONFIG_STATE_NOTIFIER
+#include <linux/state_notifier.h>
+#endif
 
 #include <mach/regs-clock.h>
 #include <mach/exynos-pm.h>
@@ -1087,7 +1090,7 @@ static int decon_get_overlap_cnt(struct decon_device *decon,
 }
 #endif
 
-static void vpp_dump(struct decon_device *decon)
+void vpp_dump(struct decon_device *decon)
 {
 	int i;
 
@@ -1857,6 +1860,9 @@ static int decon_blank(int blank_mode, struct fb_info *info)
 			decon_err("failed to disable decon\n");
 			goto blank_exit;
 		}
+#ifdef CONFIG_STATE_NOTIFIER
+		state_suspend();
+#endif
 		break;
 	case FB_BLANK_UNBLANK:
 		DISP_SS_EVENT_LOG(DISP_EVT_UNBLANK, &decon->sd, ktime_set(0, 0));
@@ -1865,6 +1871,9 @@ static int decon_blank(int blank_mode, struct fb_info *info)
 			decon_err("failed to enable decon\n");
 			goto blank_exit;
 		}
+#ifdef CONFIG_STATE_NOTIFIER
+		state_resume();
+#endif
 		break;
 	case FB_BLANK_VSYNC_SUSPEND:
 	case FB_BLANK_HSYNC_SUSPEND:
@@ -4567,7 +4576,7 @@ int decon_doze_enable(struct decon_device *decon)
 #endif
 
 #ifdef CONFIG_FB_WINDOW_UPDATE
-	if ((decon->pdata->out_type == DECON_OUT_DSI) && (decon->need_update)) {
+	if ((decon->out_type == DECON_OUT_DSI) && (decon->need_update)) {
 		decon->need_update = false;
 		decon->update_win.x = 0;
 		decon->update_win.y = 0;
@@ -4645,7 +4654,7 @@ int decon_doze_suspend(struct decon_device *decon)
 	iovmm_deactivate(decon->dev);
 
 	/* DMA protection disable must be happen on vpp domain is alive */
-	if (psr.out_type == DECON_OUT_DSI) {
+	if (decon->out_type == DECON_OUT_DSI) {
 		decon_set_protected_content(decon, NULL);
 		decon->vpp_usage_bitmask = 0;
 		decon_vpp_stop(decon, true);
@@ -4662,7 +4671,7 @@ int decon_doze_suspend(struct decon_device *decon)
 	decon_runtime_suspend(decon->dev);
 #endif
 
-	if (psr.out_type == DECON_OUT_DSI) {
+	if (decon->out_type == DECON_OUT_DSI) {
 #if 1
 		/* stop output device (mipi-dsi or hdmi) */
 		ret = v4l2_subdev_call(decon->output_sd, video, s_stream, DSIM_REQ_DOZE_SUSPEND);
@@ -4673,7 +4682,7 @@ int decon_doze_suspend(struct decon_device *decon)
 		}
 #endif
 	}
-	if (psr.out_type == DECON_OUT_DSI) {
+	if (decon->out_type == DECON_OUT_DSI) {
 		pm_relax(decon->dev);
 		dev_warn(decon->dev, "pm_relax");
 	}
