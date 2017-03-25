@@ -723,12 +723,6 @@ check_entry_size_and_hooks(struct ipt_entry *e,
 
 	err = xt_check_entry_offsets(e, e->elems, e->target_offset,
 				     e->next_offset);
-	if (err)
-		return err;
-
-	err = check_entry(e);
-	if (err)
-		return err;
 
 	/* Check hooks & underflows */
 	for (h = 0; h < NF_INET_NUMHOOKS; h++) {
